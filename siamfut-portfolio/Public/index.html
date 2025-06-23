@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIAMFUT's Portfolio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html {
+      height: 100%;
+      font-family: 'Unbounded', sans-serif;
+      background: linear-gradient(140deg, #006cff, #00ccff);
+      color: white;
+    }
+    .landing, .portfolio, .admin, .login {
+      display: none;
+      height: 100vh;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+    .active { display: flex; }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 30px;
+      background: linear-gradient(140deg, #e5e5e5, #ffffff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .btn, input[type="submit"] {
+      background: #ffc600;
+      color: white;
+      border: 2px solid #fff;
+      padding: 15px 30px;
+      border-radius: 50px;
+      font-size: 1.2em;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+    .btn:hover, input[type="submit"]:hover {
+      background: white;
+      color: #121212;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 30px;
+      width: 100%;
+    }
+    .card {
+      background: #1f1f1f;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+    .card img {
+      width: 100%;
+    }
+    .card a {
+      display: block;
+      text-align: center;
+      padding: 10px;
+      background: #00f0ff30;
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .card a:hover {
+      background: #00f0ff;
+      color: #000;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+    input[type="password"], input[type="file"] {
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="landing active" id="landing">
+    <h1>Welcome to SIAMFUT's Portfolio</h1>
+    <a href="graphics.html" class="btn">Press here to enter the Portfolio</a>
+    <button class="btn" style="margin-top: 20px;" onclick="showLogin()">Admin Upload Panel</button>
+  </div>
+
+  <div class="portfolio" id="portfolio">
+    <h1>My Graphics</h1>
+    <div class="gallery" id="gallery">
+      <!-- Files will appear here -->
+    </div>
+  </div>
+
+  <div class="login" id="login">
+    <h1>Enter Admin Password</h1>
+    <form onsubmit="return checkPassword(event)">
+      <input type="password" id="adminPass" placeholder="Password" required>
+      <input type="submit" value="Enter Upload Panel">
+    </form>
+  </div>
+  <div class="admin" id="admin">
+    <h1>Upload New Graphic</h1>
+    <form onsubmit="return uploadFile(event)">
+      <input type="file" id="fileInput" accept=".jpg,.png,.psd" required>
+      <input type="submit" value="Upload">
+
+
+    </form>
+ <a href="index.html" class="btn">← Back to Home</a>
+  </div>
+
+  <script>
+    const PASSWORD = "siamfut123";
+
+    function switchSection(sectionId) {
+      document.querySelectorAll('.landing, .portfolio, .admin, .login').forEach(div => div.classList.remove('active'));
+      document.getElementById(sectionId).classList.add('active');
+    }
+
+    function enterPortfolio() {
+      switchSection('portfolio');
+      loadGallery();
+    }
+
+    function showLogin() {
+      switchSection('login');
+    }
+
+    function checkPassword(event) {
+      event.preventDefault();
+      const inputPass = document.getElementById('adminPass').value;
+      if (inputPass === PASSWORD) {
+        switchSection('admin');
+      } else {
+        alert("Incorrect password.");
+      }
+    }
+
+    async function uploadFile(event) {
+      event.preventDefault();
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      if (!file) return alert('No file selected.');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/upload', {
+        method: 'POST',
+        headers: { 'x-admin-password': PASSWORD },
+        body: formData
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        alert('Upload successful!');
+        fileInput.value = '';
+      } else {
+        alert('Upload failed: ' + result.error);
+      }
+    }
+
+    async function loadGallery() {
+      const res = await fetch('/gallery');
+      const files = await res.json();
+      const container = document.getElementById('gallery');
+      container.innerHTML = '';
+
+      files.forEach(file => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        if (!file.isPsd) {
+          const img = document.createElement('img');
+          img.src = file.url;
+          card.appendChild(img);
+        } else {
+          const box = document.createElement('div');
+          box.style = 'height:200px;display:flex;align-items:center;justify-content:center;background:#333;color:#fff;';
+          box.textContent = file.name;
+          card.appendChild(box);
+        }
+
+        const link = document.createElement('a');
+        link.href = file.url;
+        link.download = file.name;
+        link.textContent = `Download ${file.isPsd ? 'PSD' : 'Image'}`;
+        card.appendChild(link);
+
+        container.appendChild(card);
+      });
+    }
+
+    function goBackToGallery() {
+      switchSection('portfolio');
+      loadGallery();
+    }
+  </script>
+</body>
+</html>
